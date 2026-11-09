@@ -1,22 +1,19 @@
 # 02 - Snort Intrusion Detection & Attack Signatures
 
-**Project:** IDS-IPS  
-**Platform:** Hack The Box Academy / Parrot OS / Snort 3  
-**Focus:** HTTP inspection buffers, Log4Shell signature activation, Kerberos ASN.1 byte matching, and offline PCAP validation  
-**Exercises:** Snort Rule Development · Skills Assessment — Snort
-
 ## Executive Summary
 
 This report combines two hands-on Snort 3 detection-engineering investigations. The first exercise examines attempted **Log4Shell (CVE-2021-44228)** exploitation embedded in HTTP request headers. An inactive signature was enabled, and the `http_header;` sticky buffer was added before its `content` test, allowing Snort to match JNDI-style payload strings in the HTTP headers. The second exercise examines **Kerberos RC4 encryption-type indicators** in `wannamine.pcap`. Wireshark inspection identified the byte `0x17` (decimal `23`, RC4-HMAC) and supported replacement of the `XX` placeholder in an ASN.1-oriented Snort rule.
 
-Both exercises were validated against supplied offline captures. The confirmed lab answers were **`http_header`** and **`17`**. These signatures demonstrate detection of matching traffic patterns; neither result alone proves successful Log4Shell exploitation, credential theft, or a complete Overpass-the-Hash attack chain.
+Both investigations were validated against supplied offline captures. The Log4Shell signature successfully matched suspicious HTTP header content using the **http_header** inspection buffer, while the Kerberos signature generated an alert after incorporating the RC4-HMAC hexadecimal byte **17**.
+
+These signatures demonstrate detection of matching traffic patterns; neither result alone proves successful Log4Shell exploitation, credential theft, or a complete Overpass-the-Hash attack chain.
 
 ## Investigation Objectives
 
-1. Identify the correct Snort 3 HTTP inspection keyword for a Log4Shell signature targeting HTTP headers.
+1. Investigate protocol-aware HTTP header inspection techniques for detecting Log4Shell-related payloads using Snort 3.
 2. Enable and validate the Log4Shell rule with SID `10000098` against `log4shell.pcap`.
 3. Inspect `wannamine.pcap` for Kerberos encryption-type bytes and correlate the raw representation with Wireshark's decoded protocol fields.
-4. Replace the missing byte in the RC4 detection signature (SID `9999999`) and verify a Snort alert.
+4. Refine Kerberos RC4 detection signature SID 9999999 using the observed hexadecimal encryption-type value and validate the resulting Snort alert.
 5. Explain the scope, limitations, and practical tuning considerations of both detections.
 
 ## Background
@@ -51,7 +48,7 @@ Both exercises were validated against supplied offline captures. The confirmed l
 
 ## Investigation Scope
 
-All activities occurred within an authorized Hack The Box training environment. The investigation was limited to supplied PCAPs, local rule modifications, Wireshark analysis, and Snort alert validation. The report intentionally omits lab login credentials and ephemeral target addresses. Screenshots are referenced by relative paths for GitHub publication.
+All activities occurred within an authorized Hack The Box training environment. The investigation was limited to supplied PCAPs, local rule modifications, Wireshark analysis, and Snort alert validation. The report intentionally omits lab login credentials and ephemeral target addresses. 
 
 ---
 
@@ -59,7 +56,7 @@ All activities occurred within an authorized Hack The Box training environment. 
 
 ### Investigation Objective
 
-The lab requested the keyword to insert **before the `content` keyword** in the rule with SID `10000098` so that an alert would trigger when `log4shell.pcap` was inspected. The attack strings were located in HTTP request headers, including `User-Agent`.
+Investigate suspicious JNDI lookup patterns embedded in HTTP request headers and refine Snort signature SID **10000098** to detect Log4Shell-related payloads within **log4shell.pcap**. The analysis focuses on selecting the appropriate HTTP inspection buffer and validating the resulting alerts.
 
 ### Detection Concept — HTTP Sticky Buffers
 
@@ -100,16 +97,6 @@ alert http any any -> any any (
 
 The `content` bytes above reflect the visible rule fragment (`|24 7b|jndi|3a|ldap|3a 2f 2f|`). This excerpt is formatted for readability; use the actual lab rule file for exact syntax and any additional options.
 
-![Log4Shell rule initially commented out](images/01-log4shell-rule-initial.png)
-
-![Log4Shell signature enabled](images/02-log4shell-rule-enabled.png)
-
-![HTTP header sticky buffer added](images/03-log4shell-http-header.png)
-
-![Unrelated ICMP test rule disabled](images/04-log4shell-test-rule-disabled.png)
-
-![Log4Shell rule ready for validation](images/05-log4shell-final-rule.png)
-
 ### Investigation Artifact #2 — Offline Snort Validation
 
 The updated rules were applied to the provided capture:
@@ -143,17 +130,15 @@ The documented alert output identified rule **`[1:10000098:1]`**, labeled **`Log
 
 Because the rule uses `http_header`, it can match relevant strings across the inspected header buffer rather than being restricted to a single named header. This provides broader coverage, but also calls for tuning to avoid false positives and obfuscated-payload misses.
 
-**Validated lab answer:** `http_header`
-
 **Analyst interpretation:** The result demonstrates a signature match against suspicious HTTP header content. It does not establish that the receiving server used a vulnerable Log4j version or executed a remote payload.
 
 ---
 
-## Investigation #2 — Skills Assessment: Kerberos RC4 Encryption-Type Detection
+## Investigation #2 — Kerberos RC4 Encryption-Type Detection
 
 ### Investigation Objective
 
-The lab provided `wannamine.pcap` and a Kerberos-related rule labeled **`Kerberos Ticket Encryption Downgrade to RC4 Detected`**. The final `content` option contained a placeholder byte, `XX`, in the sequence `|A0 03 02 01 XX|`. The task was to identify the actual byte from captured Kerberos traffic, update the rule, and confirm an alert.
+Investigate Kerberos encryption-type indicators within **wannamine.pcap** and refine Snort signature SID **9999999**, labeled **Kerberos Ticket Encryption Downgrade to RC4 Detected**. The analysis focuses on correlating ASN.1-encoded byte sequences with Wireshark protocol fields and validating the updated signature against captured network traffic.
 
 ### Detection Concept — Kerberos Encryption Types and ASN.1
 
@@ -182,14 +167,6 @@ content:"|A0 03 02 01 XX|";
 ```
 
 The existing rule also contained multiple preceding byte-pattern checks and relative matching constraints. Those options are important to the rule's overall specificity and were preserved rather than replaced with a single broad content match.
-
-![Kerberos downgrade rule located](images/08-kerberos-rule-located.png)
-
-![Kerberos rule activated](images/09-kerberos-rule-enabled.png)
-
-![Placeholder XX in final content match](images/10-kerberos-placeholder.png)
-
-![Additional ASN.1 content conditions](images/11-kerberos-content-conditions.png)
 
 ### Investigation Artifact #2 — Transferring the Capture
 
@@ -225,14 +202,6 @@ A0 03 02 01 17
 
 This establishes the mapping **decimal 23 → hex `17`** for the signature's missing byte.
 
-![Wireshark capture overview](images/13-kerberos-wireshark-overview.png)
-
-![Wireshark Kerberos display filter](images/14-kerberos-display-filter.png)
-
-![Hex sequence search](images/15-kerberos-hex-search.png)
-
-![Kerberos etype 23 decoded in Wireshark](images/16-kerberos-etype-23.png)
-
 ### Investigation Artifact #4 — Correcting and Testing the Rule
 
 The final content option was updated from `XX` to `17`, preserving the surrounding signature conditions:
@@ -240,9 +209,6 @@ The final content option was updated from `XX` to `17`, preserving the surroundi
 ```snort
 content:"|A0 03 02 01 17|";
 ```
-
-![Corrected Kerberos RC4 byte pattern](images/17-kerberos-rule-corrected.png)
-
 The capture was then replayed through Snort 3:
 
 ```bash
@@ -263,13 +229,9 @@ The console output included the following alert and flow:
 
 The destination port `88` is consistent with Kerberos. The displayed raw packet bytes also contained `A0 03 02 01 17`.
 
-![Snort Kerberos downgrade alert and raw bytes](images/18-kerberos-snort-alert.png)
-
 ### Findings — Kerberos
 
 The PCAP contained a Kerberos field decoded as **RC4-HMAC (etype 23)**. Replacing the placeholder with the corresponding hexadecimal byte `17` allowed the existing Snort signature to match and emit the expected alert. The detection provides an investigative lead for legacy encryption usage and possible downgrade-related behavior.
-
-**Validated lab answer:** `17`
 
 **Analyst interpretation:** Observing RC4-HMAC and matching an ASN.1 byte sequence is not sufficient, by itself, to prove that an adversary performed Overpass-the-Hash or actively forced encryption downgrade. Correlate with domain-controller authentication events, client identity, ticket-request context, and endpoint telemetry.
 
@@ -297,22 +259,4 @@ The PCAP contained a Kerberos field decoded as **RC4-HMAC (etype 23)**. Replacin
 ## Conclusion
 
 These investigations demonstrate two complementary Snort 3 signature-development skills: **protocol-aware HTTP buffer selection** and **precise binary content matching**. The Log4Shell exercise emphasizes placing detection logic in the correct application-layer context, while the Kerberos exercise emphasizes interpreting decoded protocol fields and translating their values into raw hexadecimal bytes. In both cases, the investigation followed the same defensible workflow: inspect the existing signature, identify the relevant traffic evidence, make a targeted rule change, replay the PCAP, and verify the resulting alert.
-
-## Evidence & Repository Notes
-
-The screenshots referenced in this report belong in an `images/` folder alongside this Markdown file. The original PCAPs and laboratory credentials are not included. The images document rule editing, packet analysis, and alert output. Screenshot references are relative so that GitHub renders them when the files are uploaded under the matching names.
-
-**Repository placement (suggested):**
-
-```text
-IDS-IPS/
-└── 02-Snort-Intrusion-Detection-and-Attack-Signatures/
-    ├── 02-Snort-Intrusion-Detection-and-Attack-Signatures.md
-    └── images/
-        ├── 01-log4shell-rule-initial.png
-        ├── ...
-        └── 18-kerberos-snort-alert.png
-```
-
-**Final lab answers:** `http_header` · `17`
 
