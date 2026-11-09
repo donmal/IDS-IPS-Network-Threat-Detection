@@ -23,7 +23,7 @@ These are observations within the supplied training PCAPs; they do not, by thems
  
 ## MITRE ATT&CK Mapping
  
-| Exercise | Relevant technique | Rationale / limitation |
+| Investigation | Relevant technique | Rationale / limitation |
 | --- | --- | --- |
 | EternalBlue / MS17-010 | **T1210 — Exploitation of Remote Services** | SMB exploitation is the behavior the lab's signature is designed to detect; an alert is not proof of successful exploitation. |
 | Trickbot TLS communication | **T1071.001 — Application Layer Protocol: Web Protocols** (contextual) | TLS connections are observed; the exact application-layer protocol and C2 purpose are not proven solely by JA3. |
@@ -76,9 +76,7 @@ suricata -r /home/htb-student/pcaps/eternalblue.pcap \
 cat fast.log
 ```
 **Detection Result**: Testing demonstrated that **offset:4** successfully triggered the EternalBlue signature, while **offset:3** did not produce a matching alert in the documented test. The successful replay generated four ETERNALBLUE MS17-010 alerts associated with SID 2024217.
- 
-**Result:** `offset:4` triggered the signature, whereas `offset:3` did not in the documented tests. The successful run produced **four `ETERNALBLUE MS17-010` alerts** with SID `2024217`.
- 
+  
 **Interpretation**: The investigation demonstrates how byte-level search placement influences signature matching. The observed results highlight the importance of testing rule parameters against representative network traffic, as an effective offset for one signature and capture may not generalize to other SMB detection scenarios. 
 
 ---
@@ -143,7 +141,7 @@ The displayed log contains repeated `Trickbot C2 SSL` alerts with **`[1:100299:1
   
 ---
  
-## Investigation #3 — Skills Assessment: WMI Process Execution
+## Investigation #3 — WMI Process Execution Detection
  
 ### Investigation Objective
  
@@ -220,4 +218,4 @@ The console confirms that Suricata processed **84,121 packets** (14,899,668 byte
  
  **inspect the traffic and rule → identify a discriminating pattern → update the signature → replay the PCAP → validate the alert → assess limitations**. 
  
-The problems cover different detection surfaces—SMB content placement, TLS handshake fingerprints, and WMI-related strings—and reinforce the importance of verifying detection logic against actual evidence rather than relying on rule syntax alone.
+The investigations cover different detection surfaces—SMB content placement, TLS handshake fingerprints, and WMI-related strings—and reinforce the importance of verifying detection logic against actual evidence rather than relying on rule syntax alone.
