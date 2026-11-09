@@ -120,6 +120,10 @@ sudo snort \
 
 The console showed Snort 3.1.64.0 starting, loading its configuration and rules, processing the PCAP, and exiting normally. The user's lab notes report **45,881 packets analyzed and 15 alerts**, although the supplied screenshots show the start and end of execution rather than the full intermediate alert stream.
 
+### Figure 7 - Log4Shell Snort Validation 
+
+![Figure 1 - Snort Log4Shell PCAP Validation](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/snort-intrusion-detection-and-attack-signatures/log4shell-snort-validation.png)
+
 ### Findings — Log4Shell
 
 The documented alert output identified rule **`[1:10000098:1]`**, labeled **`Log4shell Attempt Detected`**. The notes record suspicious JNDI lookup strings in both `User-Agent` and `Authorization` headers. One example was an inbound HTTP request from `45.137.21.9:38790` to `198.71.247.91:80`, with a `User-Agent` beginning with `${jndi:ldap://...}`.
@@ -187,6 +191,9 @@ The packet search tool was then used with **Find by: Hex value** and the sequenc
 ```text
 A0 03 02 01
 ```
+### Figure 8 - Wireshark Kerberos Hex Search 
+
+![Figure 2 - Wireshark Kerberos Hexadecimal Search](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/snort-intrusion-detection-and-attack-signatures/wireshark-kerberos-hex-search.png)
 
 The analyst inspected matching packets and the decoded Kerberos fields. In the provided evidence, a Kerberos `etype` field was decoded as **`ETYPE-ARCFOUR-HMAC-MD5 (23)`**, while the corresponding raw bytes contained:
 
@@ -195,6 +202,10 @@ A0 03 02 01 17
 ```
 
 This establishes the mapping **decimal 23 → hex `17`** for the signature's missing byte.
+
+### Figure 9 - Kerberos RC4 Encryption Type 23 
+
+![Figure 3 - Kerberos RC4-HMAC Encryption Type 23](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/snort-intrusion-detection-and-attack-signatures/kerberos-rc4-encryption-type23.png)
 
 ### Investigation Artifact #4 — Correcting and Testing the Rule
 
@@ -222,6 +233,10 @@ The console output included the following alert and flow:
 ```
 
 The destination port `88` is consistent with Kerberos. The displayed raw packet bytes also contained `A0 03 02 01 17`.
+
+### Figure 10 - Kerberos Snort Detection Alert 
+
+![Figure 4 - Snort Kerberos RC4 Detection Alert](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/snort-intrusion-detection-and-attack-signatures/kerberos-snort-detection-alert.png)
 
 ### Findings — Kerberos
 
