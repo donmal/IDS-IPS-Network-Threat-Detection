@@ -2,7 +2,7 @@
  
 ## Executive Summary
  
-This investigation documents three practical Suricata detection-engineering exercises against captured network traffic. The workflow moves from **SMB exploit signature tuning** (EternalBlue/MS17-010), to **TLS ClientHello fingerprint detection** (Trickbot-associated traffic), and finally to **WMI process-execution pattern detection** (PipeKat-associated PCAP). In each case, an existing signature was examined or adjusted, the capture was replayed through Suricata, and alert output was reviewed in `fast.log`.
+This investigation documents three practical Suricata detection-engineering exercises against captured network traffic. The workflow moves from **SMB exploit signature tuning** (EternalBlue/MS17-010), to **TLS ClientHello fingerprint detection** (Trickbot-associated traffic), and finally to **WMI process-execution pattern detection** (PipeKat-associated PCAP). In each case, an existing signature was examined or adjusted, the capture was replayed through Suricata, and alert output was reviewed in `fafst.log`.
  
 The investigation identified an effective tested offset of 4 for the EternalBlue signature, a JA3 digest associated with Trickbot-related TLS traffic, and an additional WMI process-creation keyword that successfully triggered the corresponding Suricata detection rule.
 
@@ -77,14 +77,14 @@ cat fast.log
 ```
 ### Figure 1 - EternalBlue / MS17-010 
 
-![Figure 1 - EternalBlue signature offset configuration](../images/suricata-detection-engineering/eternalblue-offset-4-rule.png)
+![Figure 1 - EternalBlue Offset 4 Rule](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/suricata-detection-engineering/eternalblue-offset-4-rule.png)
 
 **Detection Result**: Testing demonstrated that **offset:4** successfully triggered the EternalBlue signature, while **offset:3** did not produce a matching alert in the documented test. The successful replay generated four ETERNALBLUE MS17-010 alerts associated with SID 2024217.
 
 ### Figure 2 - EternalBlue Fast.log Alerts 
 
-![Figure 2 - EternalBlue MS17-010 detection alerts](../images/suricata-detection-engineering/eternalblue-fastlog-alerts.png)
-  
+![Figure 2 - EternalBlue Detection Alerts](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/suricata-detection-engineering/eternalblue-fastlog-alerts.png)
+
 **Interpretation**: The investigation demonstrates how byte-level search placement influences signature matching. The observed results highlight the importance of testing rule parameters against representative network traffic, as an effective offset for one signature and capture may not generalize to other SMB detection scenarios. 
 
 ---
@@ -114,7 +114,7 @@ The JA3 digest **72a589da586844d7f0818ce684948eea** was selected for signature r
 
 ### Figure 3 - Trickbot JA3 Extraction
 
-![Figure 3 - Trickbot JA3 fingerprint extraction](../images/suricata-detection-engineering/trickbot-ja3-extraction.png)
+![Figure 3 - Trickbot JA3 Extraction](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/suricata-detection-engineering/trickbot-ja3-extraction.png)
 
 The two hashes indicate at least two distinct observed JA3 fingerprints among the filtered ClientHello records; they do **not** independently prove that the other digest is benign.
  
@@ -150,8 +150,8 @@ The displayed log contains repeated `Trickbot C2 SSL` alerts with **`[1:100299:1
 ```
 ### Figure 4 - Trickbot Fast.log Alerts 
 
-![Figure 4 - Trickbot C2 SSL alerts in fast.log](../images/suricata-detection-engineering/trickbot-fastlog-alerts.png)
- 
+![Figure 4 - Trickbot C2 SSL Alerts](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/suricata-detection-engineering/trickbot-fastlog-alerts.png)
+
 **Interpretation:** The JA3-based signature matched TLS client handshakes on standard and nonstandard destination ports. A matching JA3 is a useful **detection lead**, but not conclusive attribution: multiple applications may share fingerprints, and malware can alter its TLS implementation.
   
 ---
@@ -184,8 +184,8 @@ alert tcp any any -> any any (msg:"WMI Execution Detected"; content:"Create"; co
 ```
 ### Figure 5 - WMI Rule Modification 
 
-![Figure 5 - WMI execution signature modification](../images/suricata-detection-engineering/wmi-rule-create-modification.png)
- 
+![Figure 5 - WMI Rule Modification](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/suricata-detection-engineering/wmi-rule-create-modification.png)
+
 `Create` is the relevant method name associated with WMI process creation (`Win32_Process.Create`). The other strings help constrain the match to the training scenario. `Win32_ProcessStartup` is a WMI-related class name, distinct from `Win32_Process`.
   
 ### Investigation Artifact #3 — PCAP Replay
@@ -207,8 +207,8 @@ The console confirms that Suricata processed **84,121 packets** (14,899,668 byte
 ```
 ### Figure 6 - WMI Fast.log Alert 
 
-![Figure 6 - WMI Execution Detected alert](../images/suricata-detection-engineering/wmi-fastlog-alert.png)
-  
+![Figure 6 - WMI Execution Detection Alert](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/suricata-detection-engineering/wmi-fastlog-alert.png)
+
 **Interpretation:** The replay generated the expected alert, verifying that the revised signature matches content in the capture. It does not prove that the PowerShell command executed successfully on the destination endpoint. Such confirmation would require Windows event logs, Sysmon, EDR telemetry, or process-creation evidence.
 
 ---
