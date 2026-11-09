@@ -51,8 +51,6 @@ The investigations were completed in a controlled Hack The Box Academy lab envir
 
 **WMI-related traffic:** Updated a Suricata rule with the keyword **`Create`** and validated the resulting **WMI Execution Detected** alert. The network signature does not independently prove that a remote process executed on an endpoint.
 
-[Read the Suricata investigation](01-Suricata-Detection-Engineering/README.md)
-
 ### 02 — Snort Intrusion Detection & Attack Signatures
 
 **Log4Shell:** Activated a local Snort rule and applied the **`http_header;`** sticky buffer before the content match so JNDI-style payloads could be detected within HTTP request headers, including `User-Agent` and `Authorization`.
@@ -60,8 +58,6 @@ The investigations were completed in a controlled Hack The Box Academy lab envir
 **Detection Context**: Identifying a JNDI-style payload in HTTP traffic indicates a potential exploitation attempt. It does not independently confirm that the target application was vulnerable or that remote code execution succeeded.
 
 **Kerberos RC4 detection:** Inspected `wannamine.pcap` in Wireshark, identified Kerberos encryption type **23 (RC4-HMAC)**, and replaced the placeholder in `|A0 03 02 01 XX|` with hexadecimal **`17`**. A matching byte sequence is an investigative indicator and is not, on its own, confirmation of Overpass-the-Hash.
-
-[Read the Snort investigation](02-Snort-Intrusion-Detection-and-Attack-Signatures/README.md)
 
 ### 03 — Zeek Network Security Monitoring & Exploit Investigation
 
@@ -72,8 +68,6 @@ The investigations were completed in a controlled Hack The Box Academy lab envir
 **REvil/Kaseya:** Correlated connection records for victim **`192.168.100.154`** communicating with **`178.23.155.240`**. Summing `orig_bytes` across the two observed connections (**1,702 + 609**) yielded **2,311 bytes transmitted**. This is a directional traffic-volume measurement, not proof of data exfiltration.
 
 **Neutrino/Gootkit:** Examined `x509.log` and identified **`certificate.subject`** as the field containing **`MyCompany Ltd`** in the certificate distinguished name.
-
-[Read the Zeek investigation](03-Zeek-Network-Security-Monitoring-and-Exploit-Investigation/README.md)
 
 ## Detection and Investigation Workflow
 
