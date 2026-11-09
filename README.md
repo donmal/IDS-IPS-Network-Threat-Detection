@@ -1,6 +1,5 @@
 ﻿# IDS/IPS Network Threat Detection
-
-**Hands-on Network Security Monitoring, Intrusion Detection, and Detection Engineering | Suricata · Snort · Zeek**
+| Hack-the-Box Academy |
 
 ## Project Overview
 
