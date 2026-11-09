@@ -79,12 +79,6 @@ cat fast.log
  
 **Result:** `offset:4` triggered the signature, whereas `offset:3` did not in the documented tests. The successful run produced **four `ETERNALBLUE MS17-010` alerts** with SID `2024217`.
  
-![EternalBlue rule inspection](images/01-eternalblue-rule.png)
- 
-![EternalBlue offset testing](images/02-eternalblue-offset-test.png)
- 
-![EternalBlue alert validation](images/03-eternalblue-alerts.png)
- 
 **Interpretation**: The investigation demonstrates how byte-level search placement influences signature matching. The observed results highlight the importance of testing rule parameters against representative network traffic, as an effective offset for one signature and capture may not generalize to other SMB detection scenarios. 
 
 ---
