@@ -108,7 +108,6 @@ The JA3 digest **72a589da586844d7f0818ce684948eea** was selected for signature r
 
 The two hashes indicate at least two distinct observed JA3 fingerprints among the filtered ClientHello records; they do **not** independently prove that the other digest is benign.
  
-![JA3 extraction](images/04-trickbot-ja3-digests.png)
  
 ### Investigation Artifact #2 — Signature Modification
  
@@ -125,8 +124,6 @@ sudo sed -i '/sid: *100299/s/^#//' /home/htb-student/local.rules
 sudo sed -i '/sid: *100299/s/content:"[^"]*"/content:"72a589da586844d7f0818ce684948eea"/' /home/htb-student/local.rules
 ```
  
-![Trickbot rule editing and replay](images/05-trickbot-rule-update.png)
- 
 ### Investigation Artifact #3 — Offline Replay and Alert Validation
  
 ```bash
@@ -141,10 +138,6 @@ The displayed log contains repeated `Trickbot C2 SSL` alerts with **`[1:100299:1
 [Classification: (null)] [Priority: 3] {TCP}
 10.22.33.145:50087 -> 186.71.150.23:449
 ```
- 
-![Trickbot alert evidence](images/06-trickbot-fastlog.png)
- 
-![Additional Trickbot alert evidence](images/07-trickbot-additional-alerts.png)
  
 **Interpretation:** The JA3-based signature matched TLS client handshakes on standard and nonstandard destination ports. A matching JA3 is a useful **detection lead**, but not conclusive attribution: multiple applications may share fingerprints, and malware can alter its TLS implementation.
   
@@ -169,10 +162,6 @@ The directory listing confirms `pipekatposhc2.pcap` is present. The baseline sig
 #alert tcp any any -> any any (msg:"WMI Execution Detected"; content:"Win32_ProcessStartup"; content:"powershell"; sid:2024233; rev:2;)
 ```
  
-![PCAP directory listing](images/08-wmi-pcap-directory.png)
- 
-![Original WMI rule](images/09-wmi-original-rule.png)
- 
 ### Investigation Artifact #2 — Rule Activation and Additional Keyword
  
 The signature was uncommented and `content:"Create";` was inserted immediately after the alert message:
@@ -182,9 +171,7 @@ alert tcp any any -> any any (msg:"WMI Execution Detected"; content:"Create"; co
 ```
  
 `Create` is the relevant method name associated with WMI process creation (`Win32_Process.Create`). The other strings help constrain the match to the training scenario. `Win32_ProcessStartup` is a WMI-related class name, distinct from `Win32_Process`.
- 
-![Modified WMI rule](images/10-wmi-updated-rule.png)
- 
+  
 ### Investigation Artifact #3 — PCAP Replay
  
 ```bash
@@ -194,9 +181,7 @@ cat fast.log
 ```
  
 The console confirms that Suricata processed **84,121 packets** (14,899,668 bytes) and stopped after reading the capture. The displayed training run identifies **Suricata 4.0.0-beta1**; version differences should be considered when reproducing the exercise.
- 
-![WMI PCAP processing](images/11-wmi-suricata-run.png)
- 
+  
 ### Investigation Artifact #4 — Alert Evidence
  
 ```text
@@ -204,11 +189,9 @@ The console confirms that Suricata processed **84,121 packets** (14,899,668 byte
 [Classification: (null)] [Priority: 3] {TCP}
 192.168.1.46:58198 -> 192.168.1.62:49154
 ```
- 
-![WMI detection in fast.log](images/12-wmi-fastlog-alert.png)
- 
-**Interpretation:** The replay generated the expected alert, verifying that the revised signature matches content in the capture. It does not prove that the PowerShell command executed successfully on the destination endpoint. Such confirmation would require Windows event logs, Sysmon, EDR telemetry, or process-creation evidence.
   
+**Interpretation:** The replay generated the expected alert, verifying that the revised signature matches content in the capture. It does not prove that the PowerShell command executed successfully on the destination endpoint. Such confirmation would require Windows event logs, Sysmon, EDR telemetry, or process-creation evidence.
+
 ---
  
 ## Detection Engineering Considerations
@@ -238,14 +221,3 @@ The console confirms that Suricata processed **84,121 packets** (14,899,668 byte
  **inspect the traffic and rule → identify a discriminating pattern → update the signature → replay the PCAP → validate the alert → assess limitations**. 
  
 The problems cover different detection surfaces—SMB content placement, TLS handshake fingerprints, and WMI-related strings—and reinforce the importance of verifying detection logic against actual evidence rather than relying on rule syntax alone.
- 
-## Screenshots and Evidence
- 
-The screenshots referenced throughout the three investigations are stored under `images/` and display inline when the Markdown file and image directory are uploaded together.
- 
-## Evidence & Repository Notes
- 
-- All screenshots are included in the local `images/` directory and referenced with relative Markdown paths so they render on GitHub.
-- PCAPs, target VM credentials, and executable samples are **not** included in this repository.
-- Screenshots are lab evidence, not independent malware-family attribution or proof of successful exploitation/execution.
-- Training material and exercises are credited to **Hack The Box Academy**; analysis and documentation are presented as a personal learning portfolio.
