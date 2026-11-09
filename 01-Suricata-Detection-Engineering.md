@@ -75,7 +75,15 @@ suricata -r /home/htb-student/pcaps/eternalblue.pcap \
  
 cat fast.log
 ```
+### Figure 1 - EternalBlue / MS17-010 
+
+![Figure 1 - EternalBlue signature offset configuration](../images/suricata-detection-engineering/eternalblue-offset-4-rule.png)
+
 **Detection Result**: Testing demonstrated that **offset:4** successfully triggered the EternalBlue signature, while **offset:3** did not produce a matching alert in the documented test. The successful replay generated four ETERNALBLUE MS17-010 alerts associated with SID 2024217.
+
+### Figure 2 - EternalBlue Fast.log Alerts 
+
+![Figure 2 - EternalBlue MS17-010 detection alerts](../images/suricata-detection-engineering/eternalblue-fastlog-alerts.png)
   
 **Interpretation**: The investigation demonstrates how byte-level search placement influences signature matching. The observed results highlight the importance of testing rule parameters against representative network traffic, as an effective offset for one signature and capture may not generalize to other SMB detection scenarios. 
 
@@ -103,6 +111,10 @@ ja3 -a --json /home/htb-student/pcaps/trickbot.pcap \
 ```
  
 The JA3 digest **72a589da586844d7f0818ce684948eea** was selected for signature refinement and subsequent alert validation.
+
+### Figure 3 - Trickbot JA3 Extraction
+
+![Figure 3 - Trickbot JA3 fingerprint extraction](../images/suricata-detection-engineering/trickbot-ja3-extraction.png)
 
 The two hashes indicate at least two distinct observed JA3 fingerprints among the filtered ClientHello records; they do **not** independently prove that the other digest is benign.
  
@@ -136,6 +148,9 @@ The displayed log contains repeated `Trickbot C2 SSL` alerts with **`[1:100299:1
 [Classification: (null)] [Priority: 3] {TCP}
 10.22.33.145:50087 -> 186.71.150.23:449
 ```
+### Figure 4 - Trickbot Fast.log Alerts 
+
+![Figure 4 - Trickbot C2 SSL alerts in fast.log](../images/suricata-detection-engineering/trickbot-fastlog-alerts.png)
  
 **Interpretation:** The JA3-based signature matched TLS client handshakes on standard and nonstandard destination ports. A matching JA3 is a useful **detection lead**, but not conclusive attribution: multiple applications may share fingerprints, and malware can alter its TLS implementation.
   
@@ -167,6 +182,9 @@ The signature was uncommented and `content:"Create";` was inserted immediately a
 ```suricata
 alert tcp any any -> any any (msg:"WMI Execution Detected"; content:"Create"; content:"Win32_ProcessStartup"; content:"powershell"; sid:2024233; rev:2;)
 ```
+### Figure 5 - WMI Rule Modification 
+
+![Figure 5 - WMI execution signature modification](../images/suricata-detection-engineering/wmi-rule-create-modification.png)
  
 `Create` is the relevant method name associated with WMI process creation (`Win32_Process.Create`). The other strings help constrain the match to the training scenario. `Win32_ProcessStartup` is a WMI-related class name, distinct from `Win32_Process`.
   
@@ -187,6 +205,9 @@ The console confirms that Suricata processed **84,121 packets** (14,899,668 byte
 [Classification: (null)] [Priority: 3] {TCP}
 192.168.1.46:58198 -> 192.168.1.62:49154
 ```
+### Figure 6 - WMI Fast.log Alert 
+
+![Figure 6 - WMI Execution Detected alert](../images/suricata-detection-engineering/wmi-fastlog-alert.png)
   
 **Interpretation:** The replay generated the expected alert, verifying that the revised signature matches content in the capture. It does not prove that the PowerShell command executed successfully on the destination endpoint. Such confirmation would require Windows event logs, Sysmon, EDR telemetry, or process-creation evidence.
 
