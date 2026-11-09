@@ -1,21 +1,18 @@
 # 01 - Suricata Detection Engineering
  
-**Project:** IDS-IPS  
-**Platform:** Hack The Box Academy / Parrot OS  
-**Focus:** Network intrusion detection, signature tuning, TLS fingerprinting, and offline PCAP validation  
-**Exercises:** 8.3 — Suricata Rule Development Part 1 · 8.4 — Suricata Rule Development Part 2 · 8.8 — Skills Assessment
- 
 ## Executive Summary
  
 This investigation documents three practical Suricata detection-engineering exercises against captured network traffic. The workflow moves from **SMB exploit signature tuning** (EternalBlue/MS17-010), to **TLS ClientHello fingerprint detection** (Trickbot-associated traffic), and finally to **WMI process-execution pattern detection** (PipeKat-associated PCAP). In each case, an existing signature was examined or adjusted, the capture was replayed through Suricata, and alert output was reviewed in `fast.log`.
  
-The validated lab answers were **`4`** (minimum tested triggering `offset`), **`72a589da586844d7f0818ce684948eea`** (JA3 digest), and **`Create`** (additional WMI rule content). These are observations within the supplied training PCAPs; they do not, by themselves, establish broader malware attribution or detection accuracy in production.
+The investigation identified an effective tested offset of 4 for the EternalBlue signature, a JA3 digest associated with Trickbot-related TLS traffic, and an additional WMI process-creation keyword that successfully triggered the corresponding Suricata detection rule.
+
+These are observations within the supplied training PCAPs; they do not, by themselves, establish broader malware attribution or detection accuracy in production.
  
 ## Investigation Objectives
  
-1. Determine the minimum tested `offset` that triggers the existing EternalBlue signature, SID `2024217`.
-2. Extract TLS JA3 fingerprints from `trickbot.pcap`, update SID `100299`, and verify the `Trickbot C2 SSL` alerts.
-3. Extend WMI signature SID `2024233` with the `Create` keyword and confirm the `WMI Execution Detected` alert.
+1. Evaluate how modifying the offset parameter affects EternalBlue detection using Suricata signature SID 2024217.
+2. Analyze TLS ClientHello fingerprints from trickbot.pcap, refine signature SID 100299, and validate Trickbot-associated TLS alerts.
+3. Investigate WMI-related network traffic, refine signature SID 2024233, and validate process-execution detection.
 4. Document repeatable command-line validation and detection-engineering limitations.
  
 ## Background
@@ -56,8 +53,8 @@ The exercises were conducted in an authorized training environment using provide
  
 ### Investigation Objective
  
-Determine the **minimum `offset` value** at which Suricata's existing rule SID `2024217` produces an alert against `eternalblue.pcap`, with particular attention to `fast.log`.
- 
+Investigate the impact of signature offset configuration on EternalBlue/MS17-010 detection by testing Suricata rule SID 2024217 against captured SMB traffic and reviewing the resulting alerts in fast.log.
+
 ### Detection Concept
  
 The `offset` option instructs the detection engine where to **begin searching** for the specified content within the relevant inspection buffer. Its value is a byte position, not a packet number or a severity score. The exercise tests how adjusting the search start position changes whether the SMB pattern is detected.
@@ -78,6 +75,7 @@ suricata -r /home/htb-student/pcaps/eternalblue.pcap \
  
 cat fast.log
 ```
+**Detection Result**: Testing demonstrated that **offset:4** successfully triggered the EternalBlue signature, while **offset:3** did not produce a matching alert in the documented test. The successful replay generated four ETERNALBLUE MS17-010 alerts associated with SID 2024217.
  
 **Result:** `offset:4` triggered the signature, whereas `offset:3` did not in the documented tests. The successful run produced **four `ETERNALBLUE MS17-010` alerts** with SID `2024217`.
  
@@ -87,16 +85,16 @@ cat fast.log
  
 ![EternalBlue alert validation](images/03-eternalblue-alerts.png)
  
-**Interpretation:** The lab demonstrates that byte-level search placement matters for reliable signature matching. The evidence supports the answer **`4`** for this specific rule and capture; it does not establish that the same offset is universally appropriate for every SMB signature.
- 
+**Interpretation**: The investigation demonstrates how byte-level search placement influences signature matching. The observed results highlight the importance of testing rule parameters against representative network traffic, as an effective offset for one signature and capture may not generalize to other SMB detection scenarios. 
+
 ---
  
 ## Investigation #2 — Suricata Rule Development Part 2: Trickbot TLS / JA3
  
 ### Investigation Objective
  
-Identify the JA3 digest required in the `content` keyword of the `Trickbot C2 SSL` rule (SID `100299`) and verify that the rule alerts when the supplied capture is replayed.
- 
+Analyze TLS ClientHello fingerprints associated with Trickbot-related traffic, refine Suricata signature SID 100299 using an observed JA3 digest, and validate the resulting TLS detection alerts through offline PCAP replay.
+
 ### Investigation Artifact #1 — JA3 Extraction
  
 ```bash
@@ -112,7 +110,9 @@ ja3 -a --json /home/htb-student/pcaps/trickbot.pcap \
 72a589da586844d7f0818ce684948eea
 ```
  
-The second digest was selected for the lab rule. The two hashes indicate at least two distinct observed JA3 fingerprints among the filtered ClientHello records; they do **not** independently prove that the other digest is benign.
+The JA3 digest **72a589da586844d7f0818ce684948eea** was selected for signature refinement and subsequent alert validation.
+
+The two hashes indicate at least two distinct observed JA3 fingerprints among the filtered ClientHello records; they do **not** independently prove that the other digest is benign.
  
 ![JA3 extraction](images/04-trickbot-ja3-digests.png)
  
@@ -153,17 +153,15 @@ The displayed log contains repeated `Trickbot C2 SSL` alerts with **`[1:100299:1
 ![Additional Trickbot alert evidence](images/07-trickbot-additional-alerts.png)
  
 **Interpretation:** The JA3-based signature matched TLS client handshakes on standard and nonstandard destination ports. A matching JA3 is a useful **detection lead**, but not conclusive attribution: multiple applications may share fingerprints, and malware can alter its TLS implementation.
- 
-**Lab answer:** `72a589da586844d7f0818ce684948eea`
- 
+  
 ---
  
 ## Investigation #3 — Skills Assessment: WMI Process Execution
  
 ### Investigation Objective
  
-Add a `content` keyword immediately after `msg` in rule SID `2024233` so that the WMI-related capture triggers the `WMI Execution Detected` alert.
- 
+Investigate WMI-related process-execution patterns in captured network traffic, refine Suricata signature SID 2024233 using additional content matching, and validate the resulting detection through offline PCAP analysis.
+
 ### Investigation Artifact #1 — Capture and Baseline Rule
  
 ```bash
@@ -216,9 +214,7 @@ The console confirms that Suricata processed **84,121 packets** (14,899,668 byte
 ![WMI detection in fast.log](images/12-wmi-fastlog-alert.png)
  
 **Interpretation:** The replay generated the expected alert, verifying that the revised signature matches content in the capture. It does not prove that the PowerShell command executed successfully on the destination endpoint. Such confirmation would require Windows event logs, Sysmon, EDR telemetry, or process-creation evidence.
- 
-**Lab answer:** `Create`
- 
+  
 ---
  
 ## Detection Engineering Considerations
@@ -235,15 +231,19 @@ The console confirms that Suricata processed **84,121 packets** (14,899,668 byte
  
 ## Key Findings
  
-| Lab | Signature | Validated answer | Evidence |
+| Investigation | Signature | Detection finding | Evidence |
 | --- | --- | --- | --- |
-| 8.3 — EternalBlue | `2024217` | `offset:4` | Four `ETERNALBLUE MS17-010` alerts; `offset:3` test did not alert |
-| 8.4 — Trickbot JA3 | `100299` | `72a589da586844d7f0818ce684948eea` | Repeated `Trickbot C2 SSL` alerts across ports 443, 449, and 447 |
-| 8.8 — WMI | `2024233` | `Create` | `WMI Execution Detected` alert, revision 2 |
+| EternalBlue / MS17-010 | `2024217` | Offset 4 successfully triggered detection | Four `ETERNALBLUE MS17-010` alerts; `offset:3` test did not alert |
+| Trickbot TLS / JA3 | `100299` | JA3 fingerprint `72a589da586844d7f0818ce684948eea` matched the configured signature | Repeated `Trickbot C2 SSL` alerts across ports 443, 449, and 447 |
+| WMI Process Execution | `2024233` | Additional `Create` content condition triggered WMI detection | `WMI Execution Detected` alert, revision 2 |
  
 ## Conclusion
+
+ These three investigations demonstrate a practical detection-engineering workflow:
  
-These three labs demonstrate a practical detection-engineering cycle: **inspect the traffic and rule → identify a discriminating pattern → update the signature → replay the PCAP → validate the alert → assess limitations**. The exercises cover different detection surfaces—SMB content placement, TLS handshake fingerprints, and WMI-related strings—and reinforce the importance of verifying detection logic against actual evidence rather than relying on rule syntax alone.
+ **inspect the traffic and rule → identify a discriminating pattern → update the signature → replay the PCAP → validate the alert → assess limitations**. 
+ 
+The problems cover different detection surfaces—SMB content placement, TLS handshake fingerprints, and WMI-related strings—and reinforce the importance of verifying detection logic against actual evidence rather than relying on rule syntax alone.
  
 ## Screenshots and Evidence
  
