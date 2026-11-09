@@ -207,7 +207,7 @@ The console confirms that Suricata processed **84,121 packets** (14,899,668 byte
 ```
 ### Figure 6 - WMI Fast.log Alert 
 
-![Figure 6 - WMI Execution Detection Alert](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/suricata-detection-engineering/wmi-fastlog-alert.png)
+![Figure 6 - WMI Execution Detection Alert](https://raw.githubusercontent.com/donmal/IDS-IPS-Network-Threat-Detection/main/images/suricata-detection-engineering/wmi-fast.log-alert.png)
 
 **Interpretation:** The replay generated the expected alert, verifying that the revised signature matches content in the capture. It does not prove that the PowerShell command executed successfully on the destination endpoint. Such confirmation would require Windows event logs, Sysmon, EDR telemetry, or process-creation evidence.
 
