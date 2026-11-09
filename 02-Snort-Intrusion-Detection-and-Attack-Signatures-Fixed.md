@@ -120,10 +120,6 @@ sudo snort \
 
 The console showed Snort 3.1.64.0 starting, loading its configuration and rules, processing the PCAP, and exiting normally. The user's lab notes report **45,881 packets analyzed and 15 alerts**, although the supplied screenshots show the start and end of execution rather than the full intermediate alert stream.
 
-![Snort startup and configuration loading](images/06-log4shell-snort-startup.png)
-
-![Snort completed PCAP processing](images/07-log4shell-snort-complete.png)
-
 ### Findings — Log4Shell
 
 The documented alert output identified rule **`[1:10000098:1]`**, labeled **`Log4shell Attempt Detected`**. The notes record suspicious JNDI lookup strings in both `User-Agent` and `Authorization` headers. One example was an inbound HTTP request from `45.137.21.9:38790` to `198.71.247.91:80`, with a `User-Agent` beginning with `${jndi:ldap://...}`.
@@ -177,8 +173,6 @@ scp htb-student@<LAB_TARGET_IP>:/home/htb-student/pcaps/wannamine.pcap .
 ```
 
 The terminal confirmed a completed transfer of the approximately 912 KB capture. The placeholder `<LAB_TARGET_IP>` should be replaced with the current authorized lab address when reproducing the exercise.
-
-![SCP transfer of wannamine capture](images/12-kerberos-scp-transfer.png)
 
 ### Investigation Artifact #3 — Wireshark Protocol and Hex Inspection
 
